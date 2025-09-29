@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUKAR | Data Penduduk Karanggetas</title>
+    <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/karanggetaskeren-pisan/aset-website/dukar%20logo2.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; height: 40vh; width: 100%; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { border: 4px solid rgba(0, 0, 0, .1); border-left-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .sidebar-link { display: flex; align-items: center; padding: 0.75rem 1rem; margin: 0.25rem 0; border-radius: 0.5rem; transition: background-color 0.2s, color 0.2s; }
+        .sidebar-link:hover { background-color: #e5e7eb; }
+        .sidebar-link.active { background-color: #3b82f6; color: white; }
+        .sidebar-link.active svg { color: white; }
+        
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0.5in;
+            }
+            body > * {
+                display: none !important;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="flex h-screen">
+        <!-- Sidebar Navigasi -->
+        <nav id="sidebar" class="w-64 bg-white shadow-lg flex-shrink-0 p-4">
+            
+            <!-- Logo dan Judul -->
+            <div class="flex items-center gap-3 mb-6">
+                <img src="https://cdn.jsdelivr.net/gh/karanggetaskeren-pisan/aset-website/dukar%20logo2.png" 
+                     alt="Logo DUKAR" 
+                     class="w-20 h-20">
+                <div class="flex flex-col">
+                    <h1 class="text-3xl font-extrabold text-blue-600 outline-dukar m-0">DUKAR</h1>
+                    <span class="text-sm text-gray-500 mt-1 m-0">Penduduk Karanggetas</span>
+                </div>
+            </div>
+
+            <!-- Menu Navigasi -->
+            <ul class="space-y-1">
+                <li>
+                    <a href="#search" class="sidebar-link active" data-page="search-page">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        Pencarian
+                    </a>
+                </li>
+                <li>
+                    <a href="#surat" class="sidebar-link" data-page="surat-page">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Template Surat
+                    </a>
+                </li>
+                <li>
+                    <a href="#pekerjaan" class="sidebar-link" data-page="pekerjaan-page">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        Pekerjaan
+                    </a>
+                </li>
+                <li>
+                    <a href="#pendidikan" class="sidebar-link" data-page="pendidikan-page">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-5.998 12.078 12.078 0 01.665-6.479L12 14z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-5.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
+                        Pendidikan
+                    </a>
+                </li>
+                <li>
+                    <a href="#rt" class="sidebar-link" data-page="rt-page">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        Warga per RT
+                    </a>
+                </li>
+                <li>
+                    <a href="#alamat" class="sidebar-link" data-page="alamat-page">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Warga per Alamat
+                    </a>
+                </li>
+                <li>
+                    <a href="#usia" class="sidebar-link" data-page="usia-page">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="6" r="2" /><path stroke-linecap="round" stroke-linejoin="round" d="M4 20v-2a4 4 0 014-4h0a4 4 0 014 4v2" /><circle cx="16" cy="8" r="2" /><path stroke-linecap="round" stroke-linejoin="round" d="M14 20v-2a3 3 0 013-3h0a3 3 0 013 3v2" /></svg>
+                        Rentang Usia
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <style>
+            .outline-dukar {
+                -webkit-text-stroke: 1.6px #0b1220;
+                color: #1e40af;
+                line-height: 1;
+            }
+            #sidebar h1, #sidebar p { margin: 0; }
+        </style>
+
+        <main class="flex-1 p-6 md:p-8 overflow-y-auto">
+            <div id="content-container">
+                <div id="search-page" class="content-page"><div class="relative"><input type="text" id="search-input" placeholder="Ketik NIK atau Nama untuk mencari..." class="w-full p-4 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"><button id="clear-search-btn" class="absolute inset-y-0 right-0 flex items-center pr-3 hidden" aria-label="Hapus pencarian"><svg class="h-5 w-5 text-gray-400 hover:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div><div id="search-results" class="mt-6 space-y-4"></div><p id="no-results" class="hidden text-center text-gray-500 mt-8">Data tidak ditemukan.</p></div>
+                <div id="surat-page" class="content-page hidden"></div>
+                <div id="pekerjaan-page" class="content-page hidden"></div><div id="pendidikan-page" class="content-page hidden"></div><div id="rt-page" class="content-page hidden"></div><div id="alamat-page" class="content-page hidden"></div><div id="usia-page" class="content-page hidden"></div>
+                <div id="initial-loading" class="w-full text-center mt-10"><div class="flex flex-col items-center"><div class="spinner"></div><p class="mt-4 text-gray-600">Mengambil data dari GitHub...</p></div></div>
+                <div id="initial-error" class="hidden w-full max-w-lg mx-auto bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-center" role="alert"><strong class="font-bold">Gagal Memuat Data!</strong><p id="error-message" class="block sm:inline"></p></div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="print-area" class="hidden"></div>
+
+    <script>
+        const GITHUB_CSV_URL = "https://raw.githubusercontent.com/karanggetaskeren-pisan/aset-website/refs/heads/main/DUKAR.csv";
+        let db = [];
+        let activeCharts = {};
+
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const noResultsMessage = document.getElementById('no-results');
+        const initialLoading = document.getElementById('initial-loading');
+        const initialError = document.getElementById('initial-error');
+        const errorMessage = document.getElementById('error-message');
+        const sidebar = document.getElementById('sidebar');
+        const clearSearchBtn = document.getElementById('clear-search-btn');
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        searchInput.addEventListener('input', (e) => {
+            renderSearchResults(e.target.value);
+            clearSearchBtn.classList.toggle('hidden', e.target.value === '');
+        });
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            clearSearchBtn.classList.add('hidden');
+            renderSearchResults('');
+            searchInput.focus();
+        });
+        sidebar.addEventListener('click', handleNavClick);
+
+        function initializeApp() {
+            loadDataFromGitHub();
+        }
+
+        function loadDataFromGitHub() {
+            if (GITHUB_CSV_URL === "PASTE_YOUR_RAW_GITHUB_URL_HERE") {
+                showError("URL GitHub CSV belum dimasukkan. Silakan edit file HTML dan masukkan URL Raw Anda.");
+                return;
+            }
+            Papa.parse(GITHUB_CSV_URL, {
+                download: true, header: true, skipEmptyLines: true,
+                complete: (results) => {
+                    if (results.errors.length > 0) {
+                        showError("Gagal membaca data. Pastikan format CSV Anda benar.");
+                        console.error("Parsing Errors:", results.errors);
+                        return;
+                    }
+                    db = results.data.map(row => {
+                        const dateString = row.TGL_LHR;
+                        if (dateString) {
+                            const parts = dateString.match(/(\d+)/g);
+                            let date;
+                            if (parts && parts.length === 3) {
+                                const d = parseInt(parts[0], 10);
+                                const m = parseInt(parts[1], 10);
+                                const y = parseInt(parts[2], 10);
+                                if (y > 1900 && m > 0 && m <= 12 && d > 0 && d <= 31) {
+                                     if (d > 12) {
+                                        date = new Date(Date.UTC(y, m - 1, d));
+                                     } else {
+                                        date = new Date(dateString);
+                                     }
+                                }
+                            }
+                            if (!date || isNaN(date.getTime())) {
+                                date = new Date(dateString);
+                            }
+                            row.parsedDate = isNaN(date.getTime()) ? null : date;
+                        } else {
+                            row.parsedDate = null;
+                        }
+                        return row;
+                    });
+                    initialLoading.classList.add('hidden');
+                    showPage('search-page');
+                },
+                error: (err) => {
+                    showError("Gagal mengambil data dari GitHub. Pastikan URL Raw benar dan repositori bersifat publik.");
+                    console.error("Fetch/Parse Error:", err);
+                }
+            });
+        }
+
+        function handleNavClick(e) {
+            e.preventDefault();
+            const link = e.target.closest('.sidebar-link');
+            if (!link) return;
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            const pageId = link.dataset.page;
+            showPage(pageId);
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.content-page').forEach(p => p.classList.add('hidden'));
+            const targetPage = document.getElementById(pageId);
+            targetPage.classList.remove('hidden');
+            if (pageId.endsWith('-page') && pageId !== 'search-page' && targetPage.innerHTML === '') {
+                if (pageId === 'surat-page') {
+                    renderSuratPage();
+                } else {
+                    renderRecapPage(pageId);
+                }
+            }
+        }
+        
+        function renderSuratPage() {
+            const pageContainer = document.getElementById('surat-page');
+            pageContainer.innerHTML = `
+                <h2 class="text-2xl font-bold mb-6">Template Surat Keterangan Usaha</h2>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <div class="mb-6">
+                        <label for="surat-search-input" class="block text-sm font-medium text-gray-700 mb-2">Cari Warga (Nama atau NIK)</label>
+                        <div class="relative">
+                            <input type="text" id="surat-search-input" placeholder="Ketik untuk mencari..." class="w-full p-3 border border-gray-300 rounded-lg">
+                            <div id="surat-search-results" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto hidden"></div>
+                        </div>
+                    </div>
+                    <form id="surat-form" class="hidden space-y-4">
+                        <h3 class="text-lg font-semibold border-b pb-2">Data Warga</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium">Nama</label><input type="text" id="surat-nama" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                            <div><label class="block text-sm font-medium">NIK</label><input type="text" id="surat-nik" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                            <div><label class="block text-sm font-medium">Tempat, Tgl Lahir</label><input type="text" id="surat-ttl" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                            <div><label class="block text-sm font-medium">Jenis Kelamin</label><input type="text" id="surat-jk" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                            <div><label class="block text-sm font-medium">Agama</label><input type="text" id="surat-agama" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                            <div><label class="block text-sm font-medium">Status</label><input type="text" id="surat-status" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                            <div><label class="block text-sm font-medium">Pekerjaan</label><input type="text" id="surat-pekerjaan" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                            <div><label class="block text-sm font-medium">Alamat</label><input type="text" id="surat-alamat" class="mt-1 w-full p-2 border border-gray-300 rounded-md bg-gray-100" readonly></div>
+                        </div>
+                        <h3 class="text-lg font-semibold border-b pb-2 pt-4">Detail Keterangan Usaha</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium">Nomor Surat</label><input type="text" id="surat-no" value="501 /      - Sekret" class="mt-1 w-full p-2 border border-gray-300 rounded-md"></div>
+                            <div><label class="block text-sm font-medium">Jenis Usaha</label><input type="text" id="surat-jenis-usaha" placeholder="Contoh: Jasa Bajak Sawah (Traktor)" class="mt-1 w-full p-2 border border-gray-300 rounded-md"></div>
+                        </div>
+                        <div class="pt-4 text-right">
+                            <button type="button" id="surat-print-btn" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition-colors">Pratinjau & Cetak</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            const suratSearchInput = document.getElementById('surat-search-input');
+            const suratSearchResults = document.getElementById('surat-search-results');
+            
+            suratSearchInput.addEventListener('input', () => {
+                const query = suratSearchInput.value.toLowerCase().trim();
+                if (query.length < 3) {
+                    suratSearchResults.classList.add('hidden');
+                    return;
+                }
+                const results = db.filter(p => (p.NAMA || '').toLowerCase().includes(query) || (p.NIK || '').includes(query));
+                suratSearchResults.innerHTML = '';
+                if (results.length > 0) {
+                    results.slice(0, 10).forEach(person => {
+                        const div = document.createElement('div');
+                        div.className = 'p-3 hover:bg-gray-100 cursor-pointer';
+                        div.textContent = `${person.NAMA} - ${person.NIK}`;
+                        div.addEventListener('click', () => selectPersonForSurat(person));
+                        suratSearchResults.appendChild(div);
+                    });
+                    suratSearchResults.classList.remove('hidden');
+                } else {
+                    suratSearchResults.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('surat-print-btn').addEventListener('click', printSurat);
+        }
+        
+        function selectPersonForSurat(person) {
+            document.getElementById('surat-nama').value = person.NAMA || '';
+            document.getElementById('surat-nik').value = person.NIK || '';
+            const ttl = (person.TMPT_LHR && person.parsedDate)
+                ? `${person.TMPT_LHR}, ${person.parsedDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}`
+                : person.TMPT_LHR || person.TGL_LHR || '';
+            document.getElementById('surat-ttl').value = ttl;
+            document.getElementById('surat-jk').value = person.JK || '';
+            document.getElementById('surat-agama').value = person.AGAMA || '';
+            document.getElementById('surat-status').value = person.STATUS || '';
+            document.getElementById('surat-pekerjaan').value = person.PEKERJAAN || '';
+            document.getElementById('surat-alamat').value = `${person.ALAMAT || ''}, RT ${person.RT || ''}`;
+            
+            document.getElementById('surat-form').classList.remove('hidden');
+            document.getElementById('surat-search-results').classList.add('hidden');
+            document.getElementById('surat-search-input').value = `${person.NAMA} - ${person.NIK}`;
+        }
+        
+        // --- PERUBAHAN BARU: Memperbaiki template cetak ---
+        function printSurat() {
+            const data = {
+                nama: document.getElementById('surat-nama').value,
+                nik: document.getElementById('surat-nik').value,
+                ttl: document.getElementById('surat-ttl').value,
+                jk: document.getElementById('surat-jk').value,
+                agama: document.getElementById('surat-agama').value,
+                status: document.getElementById('surat-status').value,
+                pekerjaan: document.getElementById('surat-pekerjaan').value,
+                alamat: document.getElementById('surat-alamat').value,
+                noSurat: document.getElementById('surat-no').value,
+                jenisUsaha: document.getElementById('surat-jenis-usaha').value,
+                tanggalSurat: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+            };
+
+            const printContent = `
+                <div style="font-family: Arial, sans-serif; color: black;">
+                    <table style="width: 100%; border-bottom: 3px solid black; padding-bottom: 5px;">
+                        <tr>
+                            <td style="width: 15%; text-align: center;">
+                                <img src="https://cdn.jsdelivr.net/gh/karanggetaskeren-pisan/aset-website/Logo%20Indramayu.png" alt="Logo" width="200" height="150">
+                            </td>
+                            <td style="text-align: center; line-height: 1.2;">
+                                <div style="font-weight: bold; font-size: 16pt;">PEMERINTAH KABUPATEN INDRAMAYU</div>
+                                <div style="font-weight: bold; font-size: 16pt;">KECAMATAN BANGODUA</div>
+                                <div style="font-weight: bold; font-size: 20pt;">DESA KARANGGETAS</div>
+                                <div style="font-size: 11pt; font-style: italic; white-space: nowrap;">Alamat: Jl. Raya Bojong Melati Desa Karanggetas Kec. Bangodua Kab. Indramayu 45272</div>
+                            </td>
+                            <td style="width: 15%;"></td>
+                        </tr>
+                    </table>
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <span style="font-weight: bold; text-decoration: underline; font-size: 14pt; margin: 0;">SURAT KETERANGAN USAHA</span><br>
+                        <span style="font-size: 12pt;">No: ${data.noSurat}</span>
+                    </div>
+                    <div style="margin-top: 2rem; text-align: justify; line-height: 1.5; font-size: 12pt;">
+                        <p style="text-indent: 2em;">Yang bertanda tangan di bawah ini Kuwu Karanggetas Kecamatan Bangodua Kabupaten Indramayu, menerangkan bahwa:</p>
+                        <table style="margin-left: 3rem; border-collapse: collapse; width: 100%; font-size: 12pt;">
+                            <tr><td style="padding: 0.1rem 0; width: 180px; vertical-align: top;">Nama</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;"><b>${data.nama}</b></td></tr>
+                            <tr><td style="padding: 0.1rem 0; vertical-align: top;">NIK</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;">${data.nik}</td></tr>
+                            <tr><td style="padding: 0.1rem 0; vertical-align: top;">Tempat, Tgl Lahir</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;">${data.ttl}</td></tr>
+                            <tr><td style="padding: 0.1rem 0; vertical-align: top;">Jenis Kelamin</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;">${data.jk}</td></tr>
+                            <tr><td style="padding: 0.1rem 0; vertical-align: top;">Agama</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;">${data.agama}</td></tr>
+                            <tr><td style="padding: 0.1rem 0; vertical-align: top;">Status</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;">${data.status}</td></tr>
+                            <tr><td style="padding: 0.1rem 0; vertical-align: top;">Pekerjaan</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;">${data.pekerjaan}</td></tr>
+                            <tr><td style="padding: 0.1rem 0; vertical-align: top;">Alamat</td><td style="vertical-align: top; padding-right: 5px;">:</td><td style="vertical-align: top;">${data.alamat}, Kecamatan Bangodua Kabupaten Indramayu</td></tr>
+                        </table>
+                        <p style="margin-top: 1rem; text-indent: 2em;">Nama tersebut di atas adalah penduduk desa Karanggetas Kecamatan Bangodua Kabupaten Indramayu dan berdasarkan data kependudukan kami, benar yang bersangkutan memiliki usaha <b>${data.jenisUsaha}</b>.</p>
+                        <p style="text-indent: 2em;">Demikian surat keterangan ini dibuat untuk dapat dipergunakan seperlunya.</p>
+                    </div>
+                    <div style="margin-top: 3rem; display: flex; justify-content: flex-end;">
+                        <div style="text-align: center; font-size: 12pt;">
+                            <p>Karanggetas, ${data.tanggalSurat}</p>
+                            <p>Kuwu Karanggetas,</p>
+                            <div style="height: 70px;"></div>
+                            <p style="font-weight: bold; text-decoration: underline;">H. NURWEDI, AMK..</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('print-area').innerHTML = printContent;
+            window.print();
+        }
+
+        function renderRecapPage(pageId) {
+            const pageContainer = document.getElementById(pageId);
+            const type = pageId.replace('-page', '');
+            let title, dataKey, chartType = 'bar';
+            
+            switch(type) {
+                case 'pekerjaan': title = 'Rekapitulasi Pekerjaan'; dataKey = 'PEKERJAAN'; chartType = 'pie'; break;
+                case 'pendidikan': title = 'Rekapitulasi Pendidikan'; dataKey = 'PENDIDIKAN'; chartType = 'pie'; break;
+                case 'rt': title = 'Rekapitulasi Warga per RT'; dataKey = 'RT'; break;
+                case 'alamat': title = 'Rekapitulasi Warga per Alamat'; dataKey = 'ALAMAT'; break;
+                case 'usia': title = 'Rekapitulasi Rentang Usia'; dataKey = 'USIA'; break;
+            }
+            
+            pageContainer.innerHTML = createRecapLayout(title, type);
+            
+            if (type === 'usia') {
+                updateUsiaRecap(); 
+                document.getElementById('apply-age-range-btn').addEventListener('click', updateUsiaRecap);
+            } else {
+                let data = countBy(db, dataKey);
+                if (type === 'rt') {
+                    const sortedEntries = Object.entries(data).sort((a, b) => {
+                        const rtA = parseInt(a[0], 10);
+                        const rtB = parseInt(b[0], 10);
+                        if (isNaN(rtA) && isNaN(rtB)) return a[0].localeCompare(b[0]);
+                        if (isNaN(rtA)) return 1;
+                        if (isNaN(rtB)) return -1;
+                        return rtA - rtB;
+                    });
+                    data = Object.fromEntries(sortedEntries);
+                }
+                createChart(`${type}-chart`, chartType, data, title);
+                createTable(`${type}-table`, data, dataKey);
+            }
+            
+            document.getElementById(`${type}-download-btn`).addEventListener('click', () => {
+                 const dataToDownload = activeCharts[`${type}-chart`] ? Object.fromEntries(activeCharts[`${type}-chart`].data.labels.map((label, i) => [label, activeCharts[`${type}-chart`].data.datasets[0].data[i]])) : {};
+                 downloadRecap(title, dataToDownload);
+            });
+        }
+        
+        function updateUsiaRecap() {
+            const inputs = [
+                document.getElementById('age-range-1'),
+                document.getElementById('age-range-2'),
+                document.getElementById('age-range-3'),
+                document.getElementById('age-range-4')
+            ];
+            
+            const customRanges = inputs.map(input => parseInt(input.value, 10));
+
+            for (let i = 0; i < customRanges.length; i++) {
+                if (isNaN(customRanges[i])) {
+                    alert(`Input untuk Rentang ${i + 1} harus berupa angka.`);
+                    return;
+                }
+                if (i > 0 && customRanges[i] <= customRanges[i - 1]) {
+                    alert(`Nilai Rentang ${i + 1} harus lebih besar dari Rentang ${i}.`);
+                    return;
+                }
+            }
+            
+            const data = categorizeAge(db, 'USIA', customRanges);
+            
+            createChart('usia-chart', 'bar', data, 'Rekapitulasi Rentang Usia');
+            createTable('usia-table', data, 'USIA');
+        }
+
+        function createRecapLayout(title, type) {
+            let customControls = '';
+            if (type === 'usia') {
+                customControls = `
+                    <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+                        <h4 class="font-semibold text-lg mb-3 text-blue-800">Kustomisasi 5 Rentang Usia</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 items-center">
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium whitespace-nowrap">0 s/d</label>
+                                <input type="number" id="age-range-1" value="5" class="w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium whitespace-nowrap" id="age-range-2-label">6 s/d</label>
+                                <input type="number" id="age-range-2" value="17" class="w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium whitespace-nowrap" id="age-range-3-label">18 s/d</label>
+                                <input type="number" id="age-range-3" value="40" class="w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm font-medium whitespace-nowrap" id="age-range-4-label">41 s/d</label>
+                                <input type="number" id="age-range-4" value="60" class="w-full p-2 border border-gray-300 rounded-md">
+                            </div>
+                            <button id="apply-age-range-btn" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors w-full">Terapkan</button>
+                        </div>
+                         <p class="text-xs text-gray-500 mt-2">Rentang kelima adalah usia di atas nilai rentang keempat.</p>
+                    </div>
+                `;
+                document.addEventListener('input', e => {
+                    if (e.target.matches('#age-range-1, #age-range-2, #age-range-3')) {
+                        const index = parseInt(e.target.id.split('-')[2]);
+                        const currentValue = parseInt(e.target.value, 10);
+                        const nextLabel = document.getElementById(`age-range-${index + 1}-label`);
+                        if (nextLabel && !isNaN(currentValue)) {
+                            nextLabel.textContent = `${currentValue + 1} s/d`;
+                        }
+                    }
+                });
+            }
+
+            return `
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">${title}</h2>
+                    <button id="${type}-download-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Unduh Laporan</button>
+                </div>
+                ${customControls}
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md">
+                        <div class="chart-container"><canvas id="${type}-chart"></canvas></div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                        <h3 class="font-semibold mb-4">Tabel Data</h3>
+                        <div class="overflow-auto max-h-96"><table id="${type}-table" class="w-full text-sm text-left"></table></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSearchResults(query) {
+            const lowerCaseQuery = query.toLowerCase().trim();
+            if (lowerCaseQuery.length === 0) {
+                searchResults.innerHTML = '';
+                noResultsMessage.classList.add('hidden');
+                return;
+            }
+            const results = db.filter(p => (p.NAMA || '').toLowerCase().includes(lowerCaseQuery) || (p.NIK || '').includes(lowerCaseQuery));
+            searchResults.innerHTML = ''; 
+            noResultsMessage.classList.toggle('hidden', results.length > 0);
+            results.slice(0, 50).forEach(person => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-lg shadow-sm border border-gray-200';
+                
+                const summary = document.createElement('div');
+                summary.className = 'cursor-pointer hover:bg-gray-50 p-2 -m-2 rounded-md';
+                summary.innerHTML = `<p class="font-bold text-lg text-blue-700">${person.NAMA || 'N/A'}</p><p class="text-sm text-gray-600"><strong>NIK:</strong> ${person.NIK || 'N/A'}</p><p class="text-sm text-gray-600"><strong>Alamat:</strong> ${person.ALAMAT || 'N/A'}, RT ${person.RT || '-'}</p><p class="text-xs text-gray-400 mt-2 italic">Klik untuk detail...</p>`;
+                
+                const detailContent = document.createElement('div');
+                detailContent.className = 'detail-content mt-4 pt-4 border-t border-gray-200 hidden';
+
+                summary.addEventListener('click', () => {
+                    const isHidden = detailContent.classList.toggle('hidden');
+                    if (!isHidden && detailContent.innerHTML === '') {
+                        let detailsHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4">';
+                        for (const key in person) {
+                            if (!['NAMA', 'NIK', 'ALAMAT', 'RT', 'parsedDate', 'Column1', ''].includes(key)) {
+                                let value = person[key];
+                                if (key === 'TGL_LHR' && person.parsedDate) {
+                                    value = person.parsedDate.toLocaleDateString('id-ID', {
+                                        day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
+                                    });
+                                }
+                                detailsHTML += `<div class="flex text-sm py-1"><span class="w-28 font-semibold text-gray-600 flex-shrink-0">${key}</span><span class="font-semibold text-gray-600 mr-2">:</span><span class="text-gray-800">${value || '-'}</span></div>`;
+                            }
+                        }
+                        detailsHTML += '</div>';
+                        detailContent.innerHTML = detailsHTML;
+                    }
+                });
+
+                card.appendChild(summary);
+                card.appendChild(detailContent);
+                searchResults.appendChild(card);
+            });
+        }
+
+        function showError(message) {
+            initialLoading.classList.add('hidden');
+            errorMessage.innerHTML = message;
+            initialError.classList.remove('hidden');
+        }
+
+        function countBy(dataArray, key) {
+            return dataArray.reduce((acc, item) => {
+                const category = item[key] || 'Tidak terisi';
+                acc[category] = (acc[category] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function categorizeAge(dataArray, key, customRanges = null) {
+            if (customRanges && customRanges.length === 4) {
+                const [r1, r2, r3, r4] = customRanges;
+                const groups = {
+                    [`0 - ${r1}`]: 0,
+                    [`${r1 + 1} - ${r2}`]: 0,
+                    [`${r2 + 1} - ${r3}`]: 0,
+                    [`${r3 + 1} - ${r4}`]: 0,
+                    [`> ${r4}`]: 0,
+                    'Tidak terisi': 0
+                };
+
+                dataArray.forEach(item => {
+                    const age = parseInt(item[key], 10);
+                    if (!isNaN(age)) {
+                        if (age <= r1) groups[`0 - ${r1}`]++;
+                        else if (age <= r2) groups[`${r1 + 1} - ${r2}`]++;
+                        else if (age <= r3) groups[`${r2 + 1} - ${r3}`]++;
+                        else if (age <= r4) groups[`${r3 + 1} - ${r4}`]++;
+                        else groups[`> ${r4}`]++;
+                    } else {
+                        groups['Tidak terisi']++;
+                    }
+                });
+                return groups;
+            }
+
+            const defaultRanges = [5, 17, 40, 60];
+            return categorizeAge(dataArray, key, defaultRanges);
+        }
+
+        function createChart(canvasId, type, data, label) {
+            if (activeCharts[canvasId]) activeCharts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const labels = Object.keys(data);
+            const values = Object.values(data);
+            const backgroundColors = labels.map((_, i) => `hsl(${(i * 360 / labels.length)}, 70%, 60%)`);
+            
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: type === 'pie', 
+                        position: 'top',     
+                    }
+                }
+            };
+
+            activeCharts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        label: label, 
+                        data: values, 
+                        backgroundColor: backgroundColors, 
+                        borderWidth: type === 'pie' ? 2 : 1 
+                    }] 
+                },
+                options: options
+            });
+        }
+
+        function createTable(tableId, data, keyName) {
+            const table = document.getElementById(tableId);
+            const total = Object.values(data).reduce((sum, count) => sum + count, 0);
+
+            let keyHeader = keyName;
+            if (keyName === 'USIA') keyHeader = 'Rentang Usia';
+            
+            let tableHTML = `<thead class="bg-gray-100"><tr><th class="p-2">${keyHeader}</th><th class="p-2 text-right">Jumlah</th></tr></thead><tbody>`;
+            
+            let dataEntries;
+            if (keyName === 'RT' || keyName === 'USIA') {
+                dataEntries = Object.entries(data);
+            }
+            else {
+                dataEntries = Object.entries(data).sort((a, b) => b[1] - a[1]);
+            }
+
+            for (const [key, value] of dataEntries) {
+                tableHTML += `<tr class="border-b"><td class="p-2">${key}</td><td class="p-2 text-right">${value}</td></tr>`;
+            }
+            tableHTML += `</tbody>`;
+            tableHTML += `<tfoot class="bg-gray-200 font-bold"><tr class="border-t-2 border-gray-300"><td class="p-2">Total</td><td class="p-2 text-right">${total}</td></tr></tfoot>`;
+            table.innerHTML = tableHTML;
+        }
+
+        function downloadRecap(fileName, data) {
+            const sheetData = [[fileName.replace('Rekapitulasi ', ''), 'Jumlah'], ...Object.entries(data)];
+            const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Rekapitulasi");
+            XLSX.writeFile(workbook, `${fileName}.xlsx`);
+        }
+    </script>
+</body>
+</html>
